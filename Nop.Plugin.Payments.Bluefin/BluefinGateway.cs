@@ -455,11 +455,12 @@ public class BluefinGateway : BluefinLogger
         dynamic request = new ExpandoObject();
 
         request.label = "my-instance-1"; // TODO: Compose based on the Nop Customer Info?
-        request.amount = customer.Amount;
         request.timeout = customer.Timeout;
-        request.currency = customer.Currency;
         request.bfTokenReferences = bfTokenReferences;
         request.initializeTransaction = true;
+
+        request.amount = customer.Amount;
+        request.currency = customer.Currency;
 
         // Build allowedPaymentMethods from individual booleans
         var allowedPaymentMethods = new List<string>(); // NOTE: DISABLE FOR NOW bfTokenReferences,

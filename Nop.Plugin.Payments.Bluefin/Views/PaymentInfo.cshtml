@@ -74,28 +74,14 @@
         }
 
         function removeCurrency(amount) { // Remove currency sign from the start from PrepareOrderTotalsModelAsync => OrderTotalsModel.orderTotal
+            let new_amount = ''
 
-            if (!isDigit(amount[0])) {
-                let inx = -1
-                for (let i = 1; i < amount.length; i++) {
-                    if (isDigit(amount[i])) {
-                        inx = i
-                        break
-                    }
+            for(let i = 0; i < amount.length; i++) {
+                if(isDigit(amount[i]) || amount[i] == '.' || amount[i] == ',') {
+                    new_amount += amount[i]
                 }
-                return amount.slice(inx == -1 ? 0 : inx)
-
-            } else if (!isDigit(amount[amount.length - 1])) {
-                let inx = -1
-                for (let i = amount.length - 2; i >= 0; i--) {
-                    if (isDigit(amount[i])) {
-                        inx = i
-                        break
-                    }
-                }
-                return amount.slice(0, inx + 1)
             }
-            return amount
+            return new_amount
 
         }
 
@@ -194,7 +180,7 @@
                 Timeout: timeout,
                 CustomerId: '@customer.Id',
                 // TODO: Try to find the proper order total so that we don't have to do this
-                Amount: removeCurrency('@shopping_model.OrderTotal'),
+                Amount: removeCurrency('@shopping_model.OrderTotal').replaceAll(',', ''),
                 Currency: '@currency.CurrencyCode',
                 Email: '@address?.Email',
                 BillingAddress: {
@@ -309,6 +295,8 @@
                 }
             }
             */
+
+            // console.debug('data customer:', customer)
             
             $.ajax({
                     async: true,
