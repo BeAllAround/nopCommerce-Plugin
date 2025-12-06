@@ -291,17 +291,35 @@ public class BluefinPaymentProcessor : BasePlugin, IPaymentMethod
 
         var CustomValues = processPaymentRequest.CustomValues;
 
-        string bfTokenReference = CustomValues.ContainsKey("bfTokenReference") ? (string)CustomValues["bfTokenReference"] : "";
-        string paymentType = CustomValues.ContainsKey("paymentType") ? (string)CustomValues["paymentType"] : "";
+        string bfTokenReference = ""; // CustomValues.ContainsKey("bfTokenReference") ? (string)CustomValues["bfTokenReference"] : "";
+        string paymentType = ""; // CustomValues.ContainsKey("paymentType") ? (string)CustomValues["paymentType"] : "";
 
-        string bfTransactionId = CustomValues.ContainsKey("bfTransactionId") ? (string)CustomValues["bfTransactionId"] : "";
-        string savePaymentOption = CustomValues.ContainsKey("savePaymentOption") ? (string)CustomValues["savePaymentOption"] : "";
+        string bfTransactionId = ""; // CustomValues.ContainsKey("bfTransactionId") ? (string)CustomValues["bfTransactionId"] : "";
+        string savePaymentOption = ""; // CustomValues.ContainsKey("savePaymentOption") ? (string)CustomValues["savePaymentOption"] : "";
+
+
+        if(CustomValues.TryGetValue("bfTokenReference", out var bfTokenReference_obj)) {
+            bfTokenReference = bfTokenReference_obj.Value;
+        }
+
+        if(CustomValues.TryGetValue("paymentType", out var paymentType_obj)) {
+            paymentType = paymentType_obj.Value;
+        }
+
+        if(CustomValues.TryGetValue("bfTransactionId", out var bfTransactionId_obj)) {
+            bfTransactionId = bfTransactionId_obj.Value;
+        }
+
+        if(CustomValues.TryGetValue("savePaymentOption", out var savePaymentOption_obj)) {
+            savePaymentOption = savePaymentOption_obj.Value;
+        }
+
 
         TransactionResponse transaction_res = null;
 
         var processPaymentResult = new ProcessPaymentResult();
 
-        processPaymentRequest.CustomValues.Add("Bluefin Payment Type", paymentType);
+        processPaymentRequest.CustomValues.Add(new ("Bluefin Payment Type", paymentType, displayToCustomer: true));
 
         if (paymentType == "ACH")
         {
@@ -327,7 +345,7 @@ public class BluefinPaymentProcessor : BasePlugin, IPaymentMethod
                     "Transaction ACH Res Metadata: " + JsonConvert.SerializeObject(transaction_res.Metadata)
                     );
 
-                processPaymentRequest.CustomValues.Add("Bluefin Transaction Identifier", transaction_res.Metadata.transactionId);
+                processPaymentRequest.CustomValues.Add(new ("Bluefin Transaction Identifier", transaction_res.Metadata.transactionId.ToString(), displayToCustomer: true) );
 
                 // processPaymentRequest.CustomValues.Add("Bluefin Transaction Status", transaction_res.metadata.status);
 
@@ -367,6 +385,14 @@ public class BluefinPaymentProcessor : BasePlugin, IPaymentMethod
                     err_message = string.IsNullOrEmpty(resource_message) ?
                         JsonConvert.SerializeObject(metadata)
                         : resource_message;
+                    
+                    // Transaction ID used if the transaction.status has been declined or failed. The customer has to reload the page and try checking out again.
+                    if(metadata.ContainsKey("message")
+                        && metadata.message == "Transaction ID has already been used")
+                    {
+                        err_message = "Previous transaction has failed. Please, reload the page and try checking out again.";
+                    }
+
                 }
                 // TODO: Sort out if we proceed with the payment or block it on the spot with AddError
                 processPaymentResult.AddError(err_message);
@@ -423,8 +449,17 @@ public class BluefinPaymentProcessor : BasePlugin, IPaymentMethod
                     "Triggered ProcessPaymentAsync bfTokenReference: " + bfTokenReference,
                     "Transaction Res Metadata: " + JsonConvert.SerializeObject(transaction_res.Metadata)
                     );
+ 
 
-                processPaymentRequest.CustomValues.Add("Bluefin Transaction Identifier", transaction_res.Metadata.transactionId);
+                /*
+                await _gateway.LogDebug(
+                    "QQQ CustomValues ",
+                    "CustomValues: " + transaction_res.Metadata.transactionId.ToString().GetType().FullName
+                );
+                */
+
+                processPaymentRequest.CustomValues.Add(new ("Bluefin Transaction Identifier", transaction_res.Metadata.transactionId.ToString(), displayToCustomer: true) );
+
 
                 // Reissuing Order. Consider only doing this with IsTokenVaulted() evaluating to true
                 {
@@ -720,24 +755,24 @@ public class BluefinPaymentProcessor : BasePlugin, IPaymentMethod
 
         var paymentInfo = new ProcessPaymentRequest();
 
-        if (form.TryGetValue("BfTokenReference", out StringValues BfTokenReference))
+        if (form.TryGetValue("BfTokenReference", out var BfTokenReference))
         {
-            paymentInfo.CustomValues.Add("bfTokenReference", BfTokenReference[0]);
+            paymentInfo.CustomValues.Add(new ("bfTokenReference", BfTokenReference.ToString(), displayToCustomer: false) );
         }
 
-        if (form.TryGetValue("BluefinPaymentType", out StringValues BluefinPaymentType))
+        if (form.TryGetValue("BluefinPaymentType", out var BluefinPaymentType))
         {
-            paymentInfo.CustomValues.Add("paymentType", BluefinPaymentType[0]);
+            paymentInfo.CustomValues.Add(new ("paymentType", BluefinPaymentType.ToString(), displayToCustomer: true) );
         }
 
-        if (form.TryGetValue("BfTransactionId", out StringValues BfTransactionId))
+        if (form.TryGetValue("BfTransactionId", out var BfTransactionId))
         {
-            paymentInfo.CustomValues.Add("bfTransactionId", BfTransactionId[0]);
+            paymentInfo.CustomValues.Add(new ("bfTransactionId", BfTransactionId.ToString(), displayToCustomer: true) );
         }
 
-        if (form.TryGetValue("BluefinSavePaymentOption", out StringValues BluefinSavePaymentOption))
+        if (form.TryGetValue("BluefinSavePaymentOption", out var BluefinSavePaymentOption))
         {
-            paymentInfo.CustomValues.Add("savePaymentOption", BluefinSavePaymentOption[0]);
+            paymentInfo.CustomValues.Add(new ("savePaymentOption", BluefinSavePaymentOption.ToString(), displayToCustomer: true) );
         }
 
         return Task.FromResult(paymentInfo);

@@ -386,7 +386,7 @@ public class PaymentBluefinController : BasePaymentController
         // First try to process payment via Bluefin Payment Gateway
         {
             // TODO: Reuse from model.CustomValues once we can reissue ACH Payment
-            processPaymentRequest.CustomValues.Add("Bluefin Payment Type", "CARD");
+            processPaymentRequest.CustomValues.Add(new ("Bluefin Payment Type", "CARD", displayToCustomer: true) );
 
             var transaction = new TransactionMIT
             {
@@ -544,9 +544,9 @@ public class PaymentBluefinController : BasePaymentController
                 return false;
             }
 
-            processPaymentRequest.CustomValues.Add("Bluefin Transaction Identifier", transaction_res.Metadata.transactionId);
+            processPaymentRequest.CustomValues.Add(new ("Bluefin Transaction Identifier", transaction_res.Metadata.transactionId.ToString(), displayToCustomer: true) );
 
-            processPaymentRequest.CustomValues.Add("Bluefin Transaction Initiator", "Merchant Initiated Transaction");
+            processPaymentRequest.CustomValues.Add(new ("Bluefin Transaction Initiator", "Merchant Initiated Transaction", displayToCustomer: true) );
             
             processPaymentResult.NewPaymentStatus = PaymentStatus.Paid;
 
@@ -565,7 +565,9 @@ public class PaymentBluefinController : BasePaymentController
         // Place the order in nopCommerce db
         {
 
+            /*
             // See: https://github.com/nopSolutions/nopCommerce/blob/release-4.80.9/src/Libraries/Nop.Services/Payments/PaymentService.cs#L372
+            // Serialize CustomValues dictionary to XML for nopCommerce 4.80
             var ds = new DictionarySerializer(processPaymentRequest.CustomValues);
             var xs = new XmlSerializer(typeof(DictionarySerializer));
             using var textWriter = new StringWriter();
@@ -575,6 +577,10 @@ public class PaymentBluefinController : BasePaymentController
             }
 
             var CustomValuesXml = textWriter.ToString();
+            */
+
+            // Since nopCommerce 4.90, we have the polymorphic SerializeToXml()
+            string CustomValuesXml = processPaymentRequest.CustomValues.SerializeToXml();
 
             // See: https://webiant.com/docs/nopcommerce/Libraries/Nop.Core/Domain/Orders/Order for the complete Order Entry Schema
             var new_order = new Order
